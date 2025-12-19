@@ -1,22 +1,21 @@
 import streamlit as st
-from transformers import pipeline
+import google.generativeai as genai
 
-st.set_page_config(page_title="Language Agnostic Chatbot")
-st.title("🌍 Language Agnostic Chatbot")
+st.set_page_config(page_title="AI Language Agnostic Chatbot")
+st.title("🤖 AI Language Agnostic Chatbot (Gemini)")
 st.write("Ask anything in any language")
 
-@st.cache_resource
-def load_model():
-    return pipeline(
-        "text2text-generation",
-        model="google/flan-t5-small"
-    )
+# Load API key
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-model = load_model()
+model = genai.GenerativeModel("gemini-pro")
+
+if "chat" not in st.session_state:
+    st.session_state.chat = model.start_chat(history=[])
 
 user_input = st.text_input("Type your message")
 
 if user_input:
     with st.spinner("Thinking..."):
-        result = model(user_input, max_length=100)
-        st.write(result[0]["generated_text"])
+        response = st.session_state.chat.send_message(user_input)
+        st.success(response.text)
