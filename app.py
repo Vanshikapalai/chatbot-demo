@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Language Agnostic Chatbot")
 
-st.title("🤖 Language Agnostic Chatbot")
+st.title("😄 Language Agnostic Chatbot")
 st.write("Ask anything in any language")
 
 if "messages" not in st.session_state:
