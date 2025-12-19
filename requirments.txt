@@ -1,7 +1,2 @@
 streamlit
-pypdf
 openai
-faiss-cpu
-numpy
-
-
