@@ -1,60 +1,80 @@
 import streamlit as st
 import os
+from pypdf import PdfReader
+import faiss
+import numpy as np
+from openai import OpenAI
 
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain.chains import RetrievalQA
-
-# ---------------- PAGE CONFIG ----------------
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="🌍 Multilingual RAG Chatbot")
-
 st.title("🌍 Multilingual RAG Chatbot")
 
-# ---------------- API KEY CHECK ----------------
+# ---------------- API KEY ----------------
 if "OPENAI_API_KEY" not in os.environ:
     st.warning("⚠️ Please add your OpenAI API key in Streamlit Secrets")
 
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# ---------------- HELPERS ----------------
+def get_embedding(text):
+    response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text
+    )
+    return np.array(response.data[0].embedding, dtype="float32")
+
+def chunk_text(text, size=800, overlap=100):
+    chunks = []
+    start = 0
+    while start < len(text):
+        chunks.append(text[start:start+size])
+        start += size - overlap
+    return chunks
+
 # ---------------- PDF UPLOAD ----------------
 pdf = st.file_uploader("📄 Upload a PDF", type="pdf")
-
-# ---------------- NORMAL CHAT INPUT ----------------
 query = st.text_input("💬 Ask your question (any language):")
 
-# ---------------- LOGIC ----------------
+texts = []
+index = None
+
 if pdf:
-    with open("temp.pdf", "wb") as f:
-        f.write(pdf.read())
+    reader = PdfReader(pdf)
+    full_text = ""
+    for page in reader.pages:
+        full_text += page.extract_text() or ""
 
-    loader = PyPDFLoader("temp.pdf")
-    documents = loader.load()
+    chunks = chunk_text(full_text)
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100
+    embeddings = [get_embedding(c) for c in chunks]
+    dim = len(embeddings[0])
+
+    index = faiss.IndexFlatL2(dim)
+    index.add(np.array(embeddings))
+
+# ---------------- CHAT ----------------
+if query:
+    if index:
+        q_emb = get_embedding(query)
+        D, I = index.search(np.array([q_emb]), k=3)
+        context = "\n".join([chunks[i] for i in I[0]])
+
+        prompt = f"""Answer the question using the context below.
+If context is insufficient, say so.
+
+Context:
+{context}
+
+Question:
+{query}
+"""
+    else:
+        prompt = query
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
     )
-    chunks = splitter.split_documents(documents)
 
-    embeddings = OpenAIEmbeddings()
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-
-    llm = ChatOpenAI(temperature=0)
-
-    qa = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=vectorstore.as_retriever()
-    )
-
-    if query:
-        answer = qa.run(query)
-        st.subheader("✅ Answer")
-        st.write(answer)
-
-else:
-    if query:
-        llm = ChatOpenAI(temperature=0)
-        answer = llm.predict(query)
-        st.subheader("✅ Answer")
-        st.write(answer)
+    st.subheader("✅ Answer")
+    st.write(response.choices[0].message.content)
