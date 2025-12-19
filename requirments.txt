@@ -2,7 +2,7 @@ streamlit
 transformers
 torch
 sentencepiece
-langdetect
+
 
 
 
