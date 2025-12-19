@@ -1,46 +1,60 @@
 import streamlit as st
-from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import RetrievalQA
 import os
 
-st.set_page_config(page_title="Multilingual Chatbot")
-st.title("🤖 Multilingual Chatbot (PDF + Normal Chat)")
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain.chains import RetrievalQA
 
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(page_title="🌍 Multilingual RAG Chatbot")
+
+st.title("🌍 Multilingual RAG Chatbot")
+
+# ---------------- API KEY CHECK ----------------
 if "OPENAI_API_KEY" not in os.environ:
-    st.error("Please set OPENAI_API_KEY")
-    st.stop()
+    st.warning("⚠️ Please add your OpenAI API key in Streamlit Secrets")
 
-llm = ChatOpenAI(temperature=0)
+# ---------------- PDF UPLOAD ----------------
+pdf = st.file_uploader("📄 Upload a PDF", type="pdf")
 
-pdf = st.file_uploader("Upload PDF (optional)", type="pdf")
-qa = None
+# ---------------- NORMAL CHAT INPUT ----------------
+query = st.text_input("💬 Ask your question (any language):")
 
+# ---------------- LOGIC ----------------
 if pdf:
     with open("temp.pdf", "wb") as f:
         f.write(pdf.read())
 
     loader = PyPDFLoader("temp.pdf")
-    docs = loader.load()
+    documents = loader.load()
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    chunks = splitter.split_documents(docs)
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=100
+    )
+    chunks = splitter.split_documents(documents)
 
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_documents(chunks, embeddings)
+
+    llm = ChatOpenAI(temperature=0)
 
     qa = RetrievalQA.from_chain_type(
         llm=llm,
         retriever=vectorstore.as_retriever()
     )
 
-query = st.text_input("Ask your question:")
+    if query:
+        answer = qa.run(query)
+        st.subheader("✅ Answer")
+        st.write(answer)
 
-if query:
-    if qa:
-        st.write(qa.run(query))
-    else:
-        st.write(llm.predict(query))
+else:
+    if query:
+        llm = ChatOpenAI(temperature=0)
+        answer = llm.predict(query)
+        st.subheader("✅ Answer")
+        st.write(answer)
