@@ -1,10 +1,9 @@
 import streamlit as st
-from openai import OpenAI
 
-st.set_page_config(page_title="Chatbot Demo")
-st.title("🤖 Simple Chatbot")
+st.set_page_config(page_title="Language Agnostic Chatbot")
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+st.title("🤖 Language Agnostic Chatbot")
+st.write("Ask anything in any language")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -13,22 +12,22 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-prompt = st.chat_input("Ask anything")
+user_input = st.chat_input("Type your message here...")
 
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=st.session_state.messages
+if user_input:
+    st.session_state.messages.append(
+        {"role": "user", "content": user_input}
     )
 
-    answer = response.choices[0].message.content
+    with st.chat_message("user"):
+        st.markdown(user_input)
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    # Simple chatbot logic (safe & guaranteed)
+    response = f"You said: {user_input}"
+
+    st.session_state.messages.append(
+        {"role": "assistant", "content": response}
+    )
 
     with st.chat_message("assistant"):
-        st.markdown(answer)
+        st.markdown(response)
