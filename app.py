@@ -1,25 +1,34 @@
 import streamlit as st
-import openai
-import os
+from openai import OpenAI
 
 st.set_page_config(page_title="Chatbot Demo")
-st.title("💬 AI Chatbot")
+st.title("🤖 Simple Chatbot")
 
-# API Key
-if "OPENAI_API_KEY" not in os.environ:
-    st.warning("Please set OPENAI_API_KEY in Streamlit secrets")
-    st.stop()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-openai.api_key = os.environ["OPENAI_API_KEY"]
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-user_input = st.text_input("Ask anything:")
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-if user_input:
-    response = openai.ChatCompletion.create(
+prompt = st.chat_input("Ask anything")
+
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": user_input}
-        ]
+        messages=st.session_state.messages
     )
-    st.write("### Answer")
-    st.write(response.choices[0].message.content)
+
+    answer = response.choices[0].message.content
+
+    st.session_state.messages.append({"role": "assistant", "content": answer})
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
