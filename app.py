@@ -1,45 +1,40 @@
 import streamlit as st
-from openai import OpenAI
+from transformers import pipeline
+from langdetect import detect
 
-# Page config
-st.set_page_config(page_title="Language Agnostic AI Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Free AI Chatbot", page_icon="🤖")
 
-st.title("🤖 Language Agnostic AI Chatbot")
-st.write("Ask anything in **any language**")
+st.title("🤖 Free AI Chatbot (No API Required)")
+st.write("Supports multiple languages (basic)")
 
-# Initialize OpenAI client
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+@st.cache_resource
+def load_model():
+    return pipeline(
+        "text2text-generation",
+        model="google/flan-t5-small"
+    )
 
-# Chat history
+model = load_model()
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# User input
-user_input = st.chat_input("Type your message here...")
+user_input = st.chat_input("Type your message")
 
 if user_input:
-    # Show user message
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # AI response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful multilingual assistant."},
-                    *st.session_state.messages
-                ]
-            )
-            ai_reply = response.choices[0].message.content
-            st.markdown(ai_reply)
+            prompt = f"Answer clearly: {user_input}"
+            output = model(prompt, max_length=100)
+            reply = output[0]["generated_text"]
+            st.markdown(reply)
 
-    st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-
+    st.session_state.messages.append({"role": "assistant", "content": reply})
