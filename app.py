@@ -8,7 +8,7 @@ st.write("Ask anything in any language")
 @st.cache_resource
 def load_model():
     return pipeline(
-        "text-generation",
+        "text2text-generation",
         model="google/flan-t5-small"
     )
 
