@@ -9,8 +9,8 @@ API_KEY = st.secrets["GEMINI_API_KEY"]
 
 def ask_gemini(prompt):
     url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        "gemini-pro:generateContent?key=" + API_KEY
+        "https://generativelanguage.googleapis.com/v1/models/"
+        "gemini-1.5-flash:generateContent?key=" + API_KEY
     )
 
     headers = {"Content-Type": "application/json"}
@@ -25,7 +25,6 @@ def ask_gemini(prompt):
     response = requests.post(url, headers=headers, json=data)
     result = response.json()
 
-    # 🔒 SAFE PARSING
     if "candidates" in result:
         return result["candidates"][0]["content"]["parts"][0]["text"]
     else:
