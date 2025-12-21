@@ -1,34 +1,33 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 
-# Configure API key
-genai.configure(api_key="AIzaSyCKMH5q8lkjqb67odEY4Gz7WVYtlefHdjs")
+st.set_page_config(page_title="AI Language Agnostic Chatbot")
+st.title("🤖 AI Language Agnostic Chatbot (Gemini)")
+st.write("Ask anything in any language")
 
-# Create a model
-model = genai.GenerativeModel("gemini-pro")
+API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# Streamlit app
-st.title("Chatbot Demo")
+def ask_gemini(prompt):
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        "gemini-pro:generateContent?key=" + API_KEY
+    )
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
 
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    response = requests.post(url, headers=headers, json=data)
+    return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
-# User input
-if prompt := st.chat_input("What is up?"):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+user_input = st.text_input("Type your message")
 
-    # Generate response
-    response = model.generate_content(prompt)
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response.text})
-    with st.chat_message("assistant"):
-        st.markdown(response.text)
+if user_input:
+    with st.spinner("Thinking..."):
+        answer = ask_gemini(user_input)
+        st.success(answer)
