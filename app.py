@@ -5,7 +5,6 @@ st.set_page_config(page_title="AI Language Agnostic Chatbot")
 st.title("🤖 AI Language Agnostic Chatbot (Gemini)")
 st.write("Ask anything in any language")
 
-# Load API key
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 model = genai.GenerativeModel("gemini-pro")
