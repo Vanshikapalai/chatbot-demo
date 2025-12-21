@@ -23,7 +23,13 @@ def ask_gemini(prompt):
     }
 
     response = requests.post(url, headers=headers, json=data)
-    return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    result = response.json()
+
+    # 🔒 SAFE PARSING
+    if "candidates" in result:
+        return result["candidates"][0]["content"]["parts"][0]["text"]
+    else:
+        return f"❌ Gemini Error:\n{result}"
 
 user_input = st.text_input("Type your message")
 
