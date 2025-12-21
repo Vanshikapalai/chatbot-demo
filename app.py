@@ -1,38 +1,17 @@
 import streamlit as st
-import requests
+import google.generativeai as genai
 
-st.set_page_config(page_title="AI Language Agnostic Chatbot")
-st.title("🤖 AI Language Agnostic Chatbot (Gemini)")
-st.write("Ask anything in any language")
+# Configure API key
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+# or: genai.configure(api_key="YOUR_API_KEY")
 
-API_KEY = st.secrets["GEMINI_API_KEY"]
+st.title("AI Language Agnostic Chatbot")
 
-def ask_gemini(prompt):
-    url = (
-        "https://generativelanguage.googleapis.com/v1/models/"
-        "gemini-1.5-flash:generateContent?key=" + API_KEY
-    )
+# ✅ Use a supported model
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "contents": [
-            {
-                "parts": [{"text": prompt}]
-            }
-        ]
-    }
+prompt = st.text_input("Type your message")
 
-    response = requests.post(url, headers=headers, json=data)
-    result = response.json()
-
-    if "candidates" in result:
-        return result["candidates"][0]["content"]["parts"][0]["text"]
-    else:
-        return f"❌ Gemini Error:\n{result}"
-
-user_input = st.text_input("Type your message")
-
-if user_input:
-    with st.spinner("Thinking..."):
-        answer = ask_gemini(user_input)
-        st.success(answer)
+if prompt:
+    response = model.generate_content(prompt)
+    st.write(response.text)
